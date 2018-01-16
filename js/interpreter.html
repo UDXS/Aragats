@@ -1,0 +1,69 @@
+<html>
+
+<head>
+	<title>Aragats.js Interpreter</title>
+</head>
+<style>
+	* {
+		font-family: 'Roboto', sans-serif;
+	}
+</style>
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+
+<body style="text-align:center">
+	<h1>UDXS Aragats.js Interpreter</h1>
+	<h2>Developed by Davit Markarian @
+		<a href="http://udxs.me">udxs.me</a>
+	</h2>
+	<hr>
+	<h4>Program:</h4>
+	<textarea id="prog" rows="10" cols="75">(println (+ "Hello" (input) "!"))</textarea>
+	</br>
+	<button onclick="compile()">
+		<h3>Compile and Run</h3>
+	</button>
+	</br>
+	</br>
+	<button onclick="toggleAdv()">Show/Hide Advanced</button>
+	<div id="adv">
+		<hr>
+		<h1>Advanced</h1>
+		</br>
+		<div style="height:500px;overflow-y:auto">
+			<h2>Tokenizer:</h2>
+			<textarea id="tokens" rows="20" cols="30" readonly="true"></textarea>
+			<h2>Blocks:</h2>
+			<textarea id="blocks" rows="20" cols="30" readonly="true"></textarea>
+			<h2>Constants:</h2>
+			<textarea id="consts" rows="20" cols="30" readonly="true"></textarea>
+			<h2>Blocks(Constantified):</h2>
+			<textarea id="fnl" rows="20" cols="30" readonly="true"></textarea>
+		</div>
+		<hr>
+	</div>
+	</br>
+</body>
+<script src="aragats.js"></script>
+<script>
+	document.getElementById("adv").style.display = "none";
+
+	function toggleAdv() {
+		if (document.getElementById("adv").style.display == "none") {
+			document.getElementById("adv").style.display = "block";
+		} else {
+			document.getElementById("adv").style.display = "none";
+		}
+	}
+
+	function compile() {
+		try {
+			var tokens = Aragats.compile(document.getElementById("prog").value);
+			document.getElementById("tokens").value = JSON.stringify(tokens[0], null, 4);
+			document.getElementById("blocks").value = JSON.stringify(tokens[1], null, 4);
+		} catch (error) {
+			alert(error);
+		}
+	}
+</script>
+
+</html>

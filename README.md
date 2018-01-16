@@ -1,6 +1,6 @@
-#Aragats
-##Programming Language By UDXS
-###Developed By Davit Markarian
+# Aragats
+## Programming Language By UDXS
+### Developed By Davit Markarian
 
 Araragts is a small Lisp-like language where every statement is a function.
 There are a few goals:
@@ -12,6 +12,7 @@ There are a few goals:
 - Embeddable
 
 [The specification (currently a draft) can be douwloaded here.](/spec/UDXS_Aragats.rtf)
+
 Aragats is currently in development. 
 
 Aragats will have two main implementations:

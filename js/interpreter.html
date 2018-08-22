@@ -38,6 +38,10 @@
 			<textarea id="consts" rows="20" cols="30" readonly="true"></textarea>
 			<h2>Blocks(Constantified):</h2>
 			<textarea id="fnl" rows="20" cols="30" readonly="true"></textarea>
+			<h2>Instructions:</h2>
+			<textarea id="ins" rows="20" cols="30" readonly="true"></textarea>
+			<h2>Textcode:</h2>
+			<textarea id="txt" rows="20" cols="30" readonly="true"></textarea>
 		</div>
 		<hr>
 	</div>
@@ -57,9 +61,60 @@
 
 	function compile() {
 		try {
-			var tokens = Aragats.compile(document.getElementById("prog").value);
+			var tokens = Aragats.compile(document.getElementById("prog").value,false,true);
 			document.getElementById("tokens").value = JSON.stringify(tokens[0], null, 4);
-			document.getElementById("blocks").value = JSON.stringify(tokens[1], null, 4);
+			document.getElementById("blocks").value = "";
+			var n = 0;
+			tokens[1].forEach(function (element) {
+				document.getElementById("blocks").value += "Block " + n + ":\n";
+				element.forEach(function (element) {
+					if (element.type == "identifier" || element.type == "string" || element.type == "number" || element.type ==
+						"block") {
+						document.getElementById("blocks").value += "\tType: " + element.type + " Value: '" + element.value + "'\n";
+						return;
+					}
+					document.getElementById("blocks").value += "\t" + element.type + "\n";
+				});
+				n++;
+			});
+			n = 0;
+			document.getElementById("consts").value = "";
+			tokens[2].forEach(function (element) {
+				document.getElementById("consts").value += n + ": Type: " + element.type + " Value: '" + element.value + "'\n";
+				n++;
+			});
+			n = 0;
+			document.getElementById("fnl").value = "";
+			tokens[3].forEach(function (element) {
+				document.getElementById("fnl").value += "Block " + n + ":\n";
+				element.forEach(function (element) {
+					if (element.type == "const") {
+						document.getElementById("fnl").value += "\tConstant: " + element.value + "\n";
+						return;
+					}
+					document.getElementById("fnl").value += "\t" + element.type + "\n";
+				});
+				n++;
+			});
+			n = 0;
+			document.getElementById("ins").value = "";
+			tokens[4].forEach(function (element) {
+				document.getElementById("ins").value += "Block " + n + ":\n";
+				element.forEach(function (element) {
+					if(element.type == "const"){
+						document.getElementById("ins").value += "\tConstant: ";
+					}
+					if(element.type == "block"){
+						document.getElementById("ins").value += "\tBlock: ";
+					}
+					if(element.type == "call"){
+						document.getElementById("ins").value += "\tCall: ";
+					}
+					document.getElementById("ins").value += element.value + "\n";
+				});
+				n++;
+			});
+			document.getElementById("txt").value = tokens[5];
 		} catch (error) {
 			alert(error);
 		}

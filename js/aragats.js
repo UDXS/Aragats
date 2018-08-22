@@ -190,15 +190,12 @@ function aragats() {
 				if (stream.EOF()) {
 					stream.fail("Tokenizer: Number does not end at EOF.");
 				}
-				var ch = stream.next();
-				if (ch == ")" || ch == " ") {
+				var ch = stream.peek();
+				if (!isNumber(ch)) {
 					break;
 				}
-
-				if (!(ch >= "0" && ch <= "9") && ch != ".") {
-					stream.fail("Tokenizer: Number contains illegal character.");
-				}
 				num += ch;
+				stream.next();
 			}
 			return Number(num);
 		}
@@ -288,10 +285,24 @@ function aragats() {
 					value: readString()
 				};
 			}
-			if (isNumber(stream.peek())) {
+			if (isNumber(stream.peek()) && stream.peek() != ".") {
 				return {
 					type: "number",
 					value: readNumber()
+				};
+			}
+
+			if (stream.peek() == "-") {
+				stream.next();
+				if (isNumber(stream.peek())) {
+					return {
+						type: "number",
+						value: -readNumber()
+					};
+				}
+				return {
+					type: "identifier",
+					value: "-" + readIdentifier()
 				};
 			}
 			// If it isn"t any of one of those before it, It must be an identifier.
@@ -303,33 +314,35 @@ function aragats() {
 	}
 
 	function preCheck(stream) {
-		var blocks = 0,calls = 0;
-		while(!stream.EOF()){
+		var blocks = 0,
+			calls = 0;
+		while (!stream.EOF()) {
 			var t = stream.next();
-			if(t.type == "blockEnd"){
+			if (t.type == "blockEnd") {
 				blocks++; //"blockEnd" only appears of there is an extra bracket
 			}
-			if(t.type == "callStart"){
+			if (t.type == "callStart") {
 				calls++;
 			}
-			if(t.type == "callEnd"){
+			if (t.type == "callEnd") {
 				calls--;
 			}
 		}
-		if(blocks != 0 && calls != 0){
+		if (blocks != 0 && calls != 0) {
 			stream.fail("PreCheck: Blocks and calls malaligned.");
 		}
-		if(blocks != 0){
+		if (blocks != 0) {
 			stream.fail("PreCheck: Blocks malaligned.");
 		}
-		if(calls != 0){
+		if (calls != 0) {
 			stream.fail("PreCheck: Calls malaligned.");
 		}
 	}
+
 	function Parser() {
 		return {
 			generateBlocks: generateBlocks,
-			MakeConstants: MakeConstants
+			makeConstants: makeConstants
 		};
 
 		function generateBlocks(stream, blocks) {
@@ -345,7 +358,7 @@ function aragats() {
 					generateBlocks(tokStream, blocks);
 					current.push({
 						type: "block",
-						id: blocks.length - 1
+						value: blocks.length - 1
 					});
 					continue;
 				}
@@ -354,12 +367,127 @@ function aragats() {
 			return blocks;
 		}
 
-		function MakeConstants(blocks){
-			
+		function makeConstants(blocks) {
+			var constBlocks = [];
+			var constants = [];
+			blocks.forEach(function (element) {
+				block = [];
+				element.forEach(function (element) {
+					if (element.type == "identifier" || element.type == "number" || element.type == "string") {
+						if (constants.indexOf(element.value) != -1) {
+							block.push({
+								type: "const",
+								value: constants.indexOf(element.value)
+							});
+						} else {
+							var pos = constants.push({
+								type: element.type,
+								value: element.value
+							});
+							block.push({
+								type: "const",
+								value: pos - 1
+							});
+						}
+					} else {
+						block.push(element);
+					}
+				});
+				constBlocks.push(block);
+			});
+			return {
+				blocks: constBlocks,
+				constants: constants
+			};
 		}
 	}
 
-	function compile(program) {
+	function Compiler() {
+		return {
+			compile: compile,
+			bytecode: bytecode,
+			textcode: textcode
+		};
+
+		function compile(blocks) {
+			var instructions = [];
+			blocks.forEach(function (element) {
+				var stack = [];
+				var block = [];
+				element.forEach(function (element) {
+					if (element.type == "callStart") {
+						stack.push(0);
+						return;
+					}
+					if (element.type == "callEnd") {
+						var call = stack.pop();
+						block.push({
+							type: "call",
+							value: call
+						});
+						return;
+					}
+					var n = stack.pop();
+					n++;
+					stack.push(n);
+					block.push(element);
+				});
+
+				instructions.push(block);
+			});
+			return instructions;
+		}
+
+		function typeToCode(type) {
+			if (type == "identifier") {
+				return "i";
+			}
+			if (type == "number") {
+				return "n";
+			}
+			if (type == "string") {
+				return "s";
+			}
+		}
+
+		function insToCode(ins) {
+			if (ins == "const") {
+				return "c";
+			}
+			if (ins == "block") {
+				return "b";
+			}
+			if (ins == "call") {
+				return "x";
+			}
+		}
+
+		function textcode(constants, instructions) {
+			var text = "UARA;" + constants.length + ";" + instructions.length;
+			constants.forEach(function (element) {
+				text += typeToCode(element.type);
+				if (element.type == "string" || element.type == "identifier") {
+					text += escape(element.value) + ";";
+					return;
+				}
+				text += element.value + ";";
+			});
+			instructions.forEach(function (element) {
+				text += element.length + ";";
+				element.forEach(function (element) {
+					text += insToCode(element.type) + element.value + ";";
+				});
+			});
+			return text;
+		}
+
+		function bytecode(constants, instructions) {
+			
+					}
+			
+	}
+
+	function compile(program, makeBytecode, debug) {
 		var stream = InputStream(program);
 		var tokens = [];
 		var tokenizer = Tokenizer(stream);
@@ -373,7 +501,21 @@ function aragats() {
 		preCheck(tokenStream);
 		tokenStream = TokenStream(tokens);
 		parser = Parser();
-		return [tokens, parser.generateBlocks(tokenStream)];
+		var blocks = parser.generateBlocks(tokenStream);
+		var constRet = parser.makeConstants(blocks);
+		var constBlocks = constRet.blocks;
+		var constants = constRet.constants;
+		var compiler = Compiler();
+		var instructions = compiler.compile(constBlocks);
+		var textcode = compiler.textcode(constants, instructions);
+		var bytecode = compiler.bytecode(constants, instructions);
+		if (debug) {
+			return [tokens, blocks, constants, constBlocks, instructions, textcode];
+		} else if (makeBytecode) {
+			return bytecode;
+		} else {
+			return textcode;
+		}
 	}
 
 	function execute(bytecode) {

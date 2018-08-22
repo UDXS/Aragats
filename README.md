@@ -11,7 +11,7 @@ There are a few goals:
 - Low memory usage
 - Embeddable
 
-[The specification (currently a draft) can be douwloaded here.](/spec/UDXS_Aragats.rtf)
+[The specification (currently a draft) can be downloaded here.](/spec/UDXS_Aragats.rtf)
 
 Aragats is currently in development. 
 
